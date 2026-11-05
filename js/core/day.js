@@ -11,6 +11,19 @@ const UNFED_MORALE = 6;
 const RATION_MORALE = 2;
 const RATION_END_DAYS = 5;
 
+// Anyone at 0 health or lower dies. Returns bilingual messages.
+export function markDeaths(state) {
+  const messages = [];
+  for (const p of aliveOf(state.passengers)) {
+    if (p.health <= 0) {
+      p.status = 'dead';
+      state.stats.died += 1;
+      messages.push({ nl: `${p.name} is overleden.`, en: `${p.name} has died.` });
+    }
+  }
+  return messages;
+}
+
 // Moves the game one day on. Returns the bilingual messages of that day.
 export function advanceDay(state) {
   if (state.status !== 'playing') return [];
@@ -42,13 +55,7 @@ export function advanceDay(state) {
     }
 
     // 3. Deaths.
-    for (const p of aliveOf(state.passengers)) {
-      if (p.health <= 0) {
-        p.status = 'dead';
-        state.stats.died += 1;
-        messages.push({ nl: `${p.name} is overleden.`, en: `${p.name} has died.` });
-      }
-    }
+    messages.push(...markDeaths(state));
 
     // 4. Rationing ends once the food is comfortable again.
     if (state.rationing && state.stock.food > dailyNeed(state.passengers, false) * RATION_END_DAYS) {

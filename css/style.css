@@ -300,6 +300,43 @@ select, input[type="text"] {
 .log li { border-bottom: 1px dashed var(--line); padding: 6px 0; font-size: 0.92rem; }
 .log li:last-child { border-bottom: 0; }
 
+/* ---------- Route ---------- */
+.route {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stop {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.stop.current { border-color: var(--accent); }
+.stop.visited { opacity: 0.6; }
+
+.stop-index {
+  flex: 0 0 auto;
+  min-width: 30px;
+  height: 30px;
+  border-radius: 99px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
 /* ---------- Phone ---------- */
 @media (max-width: 520px) {
   h2 { font-size: 1.25rem; }

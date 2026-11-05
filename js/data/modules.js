@@ -8,7 +8,7 @@ export const MODULES = {
     cost: { materials: 6 },
     skill: 'farmer',
     days: 2,
-    effects: { food: 2 },
+    effects: { food: 6 },
   },
   waterzuivering: {
     id: 'waterzuivering',

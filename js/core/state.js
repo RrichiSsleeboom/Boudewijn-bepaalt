@@ -4,10 +4,10 @@ import { generatePassengers } from './passengers.js';
 export const SAVE_KEY = 'laatste-trein-save';
 export const SAVE_VERSION = 1;
 
-// The train eats about 90 rations per day at the start, so 400 lasts about four
-// days before the first hunger crisis (which starts below two days of food).
+// The train eats about 90 rations per day at the start, so 800 lasts about nine
+// days. The route needs about 2200 in total, so scavenging at the stations matters.
 export const START_STOCK = {
-  food: 400,    // rations
+  food: 800,    // rations
   fuel: 40,     // units
   materials: 10,
   ammo: 15,

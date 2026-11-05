@@ -5,6 +5,8 @@ import { advanceDay } from '../core/day.js';
 import { dailyNeed, setRationing, snoozeHunger, refreshCrisis } from '../core/food.js';
 import { METHODS, METHOD_EFFECTS, pickVictim, removePassenger } from '../core/sacrifice.js';
 import { withRng } from '../core/rng.js';
+import { resolveEvent } from '../core/events.js';
+import { EVENT_BY_ID } from '../data/events.js';
 import { bar, esc, toast } from '../ui/dom.js';
 import { openModal } from '../ui/modal.js';
 
@@ -65,6 +67,37 @@ export function render(root, ctx) {
       modal = null;
       snoozeHunger(state);
       afterChange('act-next');
+    });
+  }
+
+  // An event on the road: pick one of the options, the result is shown as a toast.
+  function openEvent() {
+    const event = EVENT_BY_ID[state.pending.id];
+    if (!event) {
+      state.pending = null;
+      return;
+    }
+    modal = openModal({
+      title: loc(event.title),
+      closable: false,
+      labelledBy: 'event-title',
+      body: `
+        <p>${esc(loc(event.text))}</p>
+        <div class="choices">
+          ${event.choices.map((c, i) => `
+            <button class="btn choice-btn" type="button" data-index="${i}">
+              <strong>${esc(loc(c.label))}</strong>
+              <div class="choice-desc">${esc(loc(c.desc))}</div>
+            </button>`).join('')}
+        </div>`,
+    });
+    modal.body.querySelectorAll('[data-index]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const result = resolveEvent(state, Number(btn.dataset.index));
+        modal.close(true);
+        modal = null;
+        afterChange('act-next', result ? loc(result) : '');
+      });
     });
   }
 
@@ -185,10 +218,14 @@ export function render(root, ctx) {
     root.innerHTML = view(state);
     bindPage();
     if (focusId) root.querySelector(`#${focusId}`)?.focus();
-    if (state.pending && !modal) openCrisis();
+    if (state.pending && !modal) {
+      if (state.pending.type === 'event') openEvent();
+      else openCrisis();
+    }
   }
 
   function bindPage() {
+    root.querySelector('#act-map').addEventListener('click', () => ctx.go('map'));
     root.querySelector('#act-next')?.addEventListener('click', () => {
       const messages = advanceDay(state);
       const first = messages.length ? loc(messages[0]) : '';
@@ -248,9 +285,10 @@ function view(state) {
           <button id="act-next" class="btn primary" type="button" ${state.pending ? 'disabled' : ''}>${t('train.next')}</button>
           <button id="act-ration" class="btn" type="button">${state.rationing ? t('train.rationOff') : t('train.rationOn')}</button>
           <button id="act-sacrifice" class="btn danger" type="button">${t('train.sacrifice')}</button>
+          <button id="act-map" class="btn" type="button">${t('train.toMap')}</button>
         </div>
         ${state.rationing ? `<p class="small-text muted" style="margin-top:10px">${t('train.rationingNote')}</p>` : ''}
-        ${state.pending ? `<p class="small-text" style="margin-top:10px;color:var(--danger)">${t('train.crisisPending')}</p>` : ''}
+        ${state.pending ? `<p class="small-text" style="margin-top:10px;color:var(--danger)">${t(state.pending.type === 'event' ? 'train.eventPending' : 'train.crisisPending')}</p>` : ''}
       </section>
 
       <section class="panel" aria-labelledby="log-title">
