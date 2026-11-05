@@ -4,8 +4,10 @@ import { generatePassengers } from './passengers.js';
 export const SAVE_KEY = 'laatste-trein-save';
 export const SAVE_VERSION = 1;
 
+// The train eats about 90 rations per day at the start, so 400 lasts about four
+// days before the first hunger crisis (which starts below two days of food).
 export const START_STOCK = {
-  food: 60,     // rations
+  food: 400,    // rations
   fuel: 40,     // units
   materials: 10,
   ammo: 15,
@@ -23,7 +25,8 @@ export function newGame({ seed = Math.floor(Math.random() * 2 ** 31), lang = 'nl
     rngState: rng.state,
     lang,
     day: 1,
-    station: 0,
+    station: 0,          // index in the route (see data/stations.js in phase 3)
+    atStation: true,     // false while the train is between stations
     passengers,
     stock: { ...START_STOCK },
     conscience: 60,      // 0..100, a hidden score that drops after every sacrifice
@@ -31,6 +34,7 @@ export function newGame({ seed = Math.floor(Math.random() * 2 ** 31), lang = 'nl
     building: null,      // { id, daysLeft }
     rationing: false,
     pending: null,       // open crisis, for example { type: 'hunger' }
+    crisisSnoozeUntil: 0, // no new hunger crisis before this day
     flags: { radio: false },
     stats: { sacrificed: 0, left: 0, died: 0, scavenges: 0, zombiesKilled: 0 },
     log: [],
