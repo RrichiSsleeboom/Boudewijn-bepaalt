@@ -32,6 +32,7 @@ export function newGame({ seed = Math.floor(Math.random() * 2 ** 31), lang = 'nl
     conscience: 60,      // 0..100, a hidden score that drops after every sacrifice
     modules: [],         // ids of built modules
     building: null,      // { id, daysLeft }
+    looted: [],          // station ids that were already scavenged
     rationing: false,
     pending: null,       // open crisis, for example { type: 'hunger' }
     crisisSnoozeUntil: 0, // no new hunger crisis before this day

@@ -4,10 +4,11 @@ import { toast } from './ui/dom.js';
 import * as menu from './scenes/menu.js';
 import * as train from './scenes/train.js';
 import * as map from './scenes/map.js';
+import * as scavenge from './scenes/scavenge.js';
 
 // Scenes are modules with render(root, ctx). render may return a cleanup function
 // (the scavenge scene needs it to stop its animation loop).
-const SCENES = { menu, train, map };
+const SCENES = { menu, train, map, scavenge };
 
 const app = document.getElementById('app');
 const ctx = {

@@ -1,6 +1,7 @@
 import { t, loc } from '../i18n/index.js';
 import { ROUTE } from '../data/stations.js';
 import { canDepart, depart, fuelCost, nextStation } from '../core/travel.js';
+import { canScavenge } from '../core/scavenge.js';
 import { esc } from '../ui/dom.js';
 
 // The route. Leaving happens here; events and crises are handled in the train view.
@@ -14,6 +15,7 @@ export function render(root, ctx) {
   const here = ROUTE[state.station];
   const next = nextStation(state);
   const check = canDepart(state);
+  const scav = canScavenge(state);
 
   const stops = ROUTE.map((stop, index) => {
     let status = 'upcoming';
@@ -64,6 +66,10 @@ export function render(root, ctx) {
              ${check.ok ? '' : `<p class="small-text muted" style="margin-top:10px">${reasonText[check.reason] ?? ''}</p>`}`
           : `<p>${t('map.arrivedHaven')}</p>`}
         <div class="row" style="margin-top:14px">
+          <button id="act-scavenge" class="btn" type="button" ${scav.ok ? '' : 'disabled'}>${t('map.scavenge', { name: esc(loc(here.name)) })}</button>
+        </div>
+        ${scav.ok ? '' : `<p class="small-text muted" style="margin-top:8px">${t(`scav.reason.${scav.reason}`)}</p>`}
+        <div class="row" style="margin-top:14px">
           <button id="act-back" class="btn" type="button">${t('map.toTrain')}</button>
         </div>
       </section>
@@ -71,6 +77,7 @@ export function render(root, ctx) {
   `;
 
   root.querySelector('#act-back').addEventListener('click', () => ctx.go('train'));
+  root.querySelector('#act-scavenge')?.addEventListener('click', () => ctx.go('scavenge'));
 
   root.querySelector('#act-depart')?.addEventListener('click', () => {
     const result = depart(state);
