@@ -1,0 +1,11 @@
+{
+  "name": "de-laatste-trein",
+  "version": "0.1.0",
+  "private": true,
+  "description": "De Laatste Trein / The Last Train: a browser survival game.",
+  "type": "module",
+  "scripts": {
+    "start": "npx --yes serve -l 8080 .",
+    "test": "node --test tests/*.test.js"
+  }
+}
