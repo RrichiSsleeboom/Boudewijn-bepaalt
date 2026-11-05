@@ -67,6 +67,7 @@ export function render(root, ctx) {
           : `<p>${t('map.arrivedHaven')}</p>`}
         <div class="row" style="margin-top:14px">
           <button id="act-scavenge" class="btn" type="button" ${scav.ok ? '' : 'disabled'}>${t('map.scavenge', { name: esc(loc(here.name)) })}</button>
+          ${here.settlement ? `<button id="act-rebuild" class="btn" type="button">${t('map.rebuild', { name: esc(loc(here.name)) })}</button>` : ''}
         </div>
         ${scav.ok ? '' : `<p class="small-text muted" style="margin-top:8px">${t(`scav.reason.${scav.reason}`)}</p>`}
         <div class="row" style="margin-top:14px">
@@ -78,6 +79,7 @@ export function render(root, ctx) {
 
   root.querySelector('#act-back').addEventListener('click', () => ctx.go('train'));
   root.querySelector('#act-scavenge')?.addEventListener('click', () => ctx.go('scavenge'));
+  root.querySelector('#act-rebuild')?.addEventListener('click', () => ctx.go('rebuild'));
 
   root.querySelector('#act-depart')?.addEventListener('click', () => {
     const result = depart(state);

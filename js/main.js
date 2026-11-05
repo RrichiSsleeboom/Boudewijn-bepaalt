@@ -5,10 +5,13 @@ import * as menu from './scenes/menu.js';
 import * as train from './scenes/train.js';
 import * as map from './scenes/map.js';
 import * as scavenge from './scenes/scavenge.js';
+import * as rebuild from './scenes/rebuild.js';
+import * as end from './scenes/end.js';
+import { checkEnding } from './core/endings.js';
 
 // Scenes are modules with render(root, ctx). render may return a cleanup function
 // (the scavenge scene needs it to stop its animation loop).
-const SCENES = { menu, train, map, scavenge };
+const SCENES = { menu, train, map, scavenge, rebuild, end };
 
 const app = document.getElementById('app');
 const ctx = {
@@ -39,8 +42,19 @@ function rerender() {
     ctx.cleanup();
     ctx.cleanup = null;
   }
+
+  // The game ends by itself (harbour, no survivors, stranded). Then every
+  // scene except the menu shows the ending.
+  if (ctx.state) {
+    const before = ctx.state.status;
+    checkEnding(ctx.state);
+    if (ctx.state.status !== before) save();
+  }
+  const ended = ctx.state?.status === 'ended';
+  const sceneName = ended && ctx.scene !== 'menu' ? 'end' : ctx.scene;
+
   app.innerHTML = '';
-  const mod = SCENES[ctx.scene] ?? menu;
+  const mod = SCENES[sceneName] ?? menu;
   const cleanup = mod.render(app, ctx);
   ctx.cleanup = typeof cleanup === 'function' ? cleanup : null;
   updateChrome();
