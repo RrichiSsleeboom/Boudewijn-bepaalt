@@ -175,6 +175,9 @@ export default {
   'walk.prompt': '{name} · {job} · {country}',
   'walk.unavailable': 'The 3D view is not available here.',
 
+  'travel.skip': 'Skip',
+  'travel.label': 'On the road: {days} days',
+
   'map.rebuild': 'Rebuild in {name}',
   'rebuild.title': 'Rebuild in {station}',
   'rebuild.notSettlement': 'Nobody lives here. You can only build in a settlement.',

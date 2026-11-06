@@ -534,6 +534,18 @@ select, input[type="text"] {
 
 .walk-prompt:empty { display: none; }
 
+.travel-label {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 8px;
+  color: #f1e9da;
+  font-weight: 700;
+  pointer-events: none;
+}
+
 .walk-exit {
   position: absolute;
   top: 12px;

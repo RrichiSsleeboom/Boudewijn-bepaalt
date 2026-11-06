@@ -88,8 +88,52 @@ export function render(root, ctx) {
       return;
     }
     ctx.save();
-    ctx.go('train');
-    if (result.arrived) ctx.toast(t('map.arrivedAt', { name: loc(result.arrived) }));
+    const arrived = result.arrived;
+    // The journey is decided already; the view out of the window is shown first.
+    playTravel(here.distance, () => {
+      ctx.go('train');
+      if (arrived) ctx.toast(t('map.arrivedAt', { name: loc(arrived) }));
+    });
   });
-  return null;
+
+  return () => {
+    travelCancel?.();
+  };
+
+  // The view out of the window. Falls back to going straight to the train without 3D.
+  function playTravel(days, after) {
+    const overlay = document.createElement('div');
+    overlay.className = 'walk-overlay travel-overlay';
+    document.body.appendChild(overlay);
+    let view = null;
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      view?.dispose();
+      overlay.remove();
+      travelCancel = null;
+      after();
+    };
+    travelCancel = () => {
+      if (done) return;
+      done = true;
+      view?.dispose();
+      overlay.remove();
+      travelCancel = null;
+    };
+    (async () => {
+      try {
+        const engine = await import('../render/engine.js');
+        if (!engine.isWebGLAvailable()) throw new Error('no-webgl');
+        const { runTravelView } = await import('../render/travel-view.js');
+        if (done) return;
+        view = runTravelView({ container: overlay, days, onDone: finish });
+      } catch {
+        finish();
+      }
+    })();
+  }
 }
+
+let travelCancel = null;

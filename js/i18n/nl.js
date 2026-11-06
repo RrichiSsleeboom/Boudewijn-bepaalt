@@ -175,6 +175,9 @@ export default {
   'walk.prompt': '{name} · {job} · {country}',
   'walk.unavailable': '3D is hier niet beschikbaar.',
 
+  'travel.skip': 'Sla over',
+  'travel.label': 'Onderweg: {days} dagen',
+
   'map.rebuild': 'Herbouw in {name}',
   'rebuild.title': 'Herbouw in {station}',
   'rebuild.notSettlement': 'Hier woont niemand. Je kunt alleen bouwen in een nederzetting.',
