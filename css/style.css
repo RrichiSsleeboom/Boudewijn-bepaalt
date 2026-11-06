@@ -379,6 +379,9 @@ select, input[type="text"] {
 .pad-btn.wide { grid-column: span 2; font-size: 1rem; font-weight: 700; }
 
 /* ---------- 3D field ---------- */
+.settle-stage { height: min(45vh, 360px); min-height: 220px; }
+.end-stage { height: min(38vh, 300px); min-height: 200px; margin-bottom: var(--gutter); }
+
 .field-stage {
   position: relative;
   width: 100%;

@@ -5,6 +5,7 @@ import {
   maxHearts, buildCrates, finishScavenge, describeLoot,
 } from '../core/scavenge.js';
 import { esc } from '../ui/dom.js';
+import { getQuality } from '../render/settings.js';
 
 // Scavenging: choose the crew (2D), then search the station in first person (3D).
 // If 3D is not available, the search runs automatically and the result is the same.
@@ -97,6 +98,7 @@ export function render(root, ctx) {
         hearts,
         ammo: state.stock.ammo,
         lang: state.lang,
+        engine: { quality: getQuality() },
         onEnd,
       });
     } catch {

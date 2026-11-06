@@ -175,6 +175,10 @@ export default {
   'walk.prompt': '{name} · {job} · {country}',
   'walk.unavailable': 'The 3D view is not available here.',
 
+  'menu.quality': 'Graphics quality',
+  'menu.quality.high': 'High',
+  'menu.quality.low': 'Low (older phones)',
+
   'travel.skip': 'Skip',
   'travel.label': 'On the road: {days} days',
 

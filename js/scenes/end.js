@@ -3,8 +3,10 @@ import { COUNTRIES } from '../data/names.js';
 import { ENDING_TEXT } from '../data/endings.js';
 import { aliveOf } from '../core/passengers.js';
 import { esc } from '../ui/dom.js';
+import { getQuality, prefersReducedMotion } from '../render/settings.js';
 
 // Shown once the game has ended. main.js sends the player here whenever state.status is 'ended'.
+// The backdrop is the yard at the final stop, with what was built, slowly turning.
 export function render(root, ctx) {
   const state = ctx.state;
   if (!state || state.status !== 'ended') {
@@ -20,7 +22,14 @@ export function render(root, ctx) {
     .sort((a, b) => a.localeCompare(b));
   const built = state.modules.length;
 
+  const host = document.createElement('div');
+  host.className = 'field-stage settle-stage end-stage';
+  let view = null;
+  let disposed = false;
+
   root.innerHTML = `
+    <div id="end-slot"></div>
+
     <section class="panel hero" aria-labelledby="end-title">
       <p class="muted small-text">${t('end.kicker', { day: state.day })}</p>
       <h2 id="end-title">${esc(loc(ending.title, lang))}</h2>
@@ -51,7 +60,35 @@ export function render(root, ctx) {
       <button id="act-menu" class="btn big" type="button">${t('end.menu')}</button>
     </div>`;
 
+  root.querySelector('#end-slot').replaceWith(host);
   root.querySelector('#act-new').addEventListener('click', () => ctx.startNewGame());
   root.querySelector('#act-menu').addEventListener('click', () => ctx.go('menu'));
-  return null;
+
+  // The backdrop is optional: without WebGL the page is the same, just without the picture.
+  (async () => {
+    try {
+      const engine = await import('../render/engine.js');
+      if (!engine.isWebGLAvailable()) {
+        host.remove();
+        return;
+      }
+      const { runSettlementView } = await import('../render/settlement-view.js');
+      if (disposed) return;
+      view = runSettlementView({
+        container: host,
+        state: { ...state, building: null },
+        quality: getQuality(),
+        reduceMotion: prefersReducedMotion(),
+      });
+    } catch {
+      host.remove();
+    }
+  })();
+
+  return () => {
+    disposed = true;
+    view?.dispose();
+    view = null;
+    host.remove();
+  };
 }

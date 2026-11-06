@@ -175,6 +175,10 @@ export default {
   'walk.prompt': '{name} · {job} · {country}',
   'walk.unavailable': '3D is hier niet beschikbaar.',
 
+  'menu.quality': 'Beeldkwaliteit',
+  'menu.quality.high': 'Hoog',
+  'menu.quality.low': 'Laag (oudere telefoons)',
+
   'travel.skip': 'Sla over',
   'travel.label': 'Onderweg: {days} dagen',
 

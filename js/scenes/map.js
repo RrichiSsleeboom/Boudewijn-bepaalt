@@ -3,6 +3,7 @@ import { ROUTE } from '../data/stations.js';
 import { canDepart, depart, fuelCost, nextStation } from '../core/travel.js';
 import { canScavenge } from '../core/scavenge.js';
 import { esc } from '../ui/dom.js';
+import { getQuality } from '../render/settings.js';
 
 // The route. Leaving happens here; events and crises are handled in the train view.
 export function render(root, ctx) {
@@ -128,7 +129,7 @@ export function render(root, ctx) {
         if (!engine.isWebGLAvailable()) throw new Error('no-webgl');
         const { runTravelView } = await import('../render/travel-view.js');
         if (done) return;
-        view = runTravelView({ container: overlay, days, onDone: finish });
+        view = runTravelView({ container: overlay, days, onDone: finish, quality: getQuality() });
       } catch {
         finish();
       }

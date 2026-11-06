@@ -9,6 +9,7 @@ import { resolveEvent } from '../core/events.js';
 import { EVENT_BY_ID } from '../data/events.js';
 import { bar, esc, toast } from '../ui/dom.js';
 import { openModal } from '../ui/modal.js';
+import { getQuality } from '../render/settings.js';
 
 const COUNTRY = Object.fromEntries(COUNTRIES.map(c => [c.code, c]));
 const JOB = Object.fromEntries(JOBS.map(j => [j.id, j]));
@@ -227,6 +228,7 @@ export function render(root, ctx) {
         container: walkOverlay,
         passengers: state.passengers,
         lang: state.lang,
+        quality: getQuality(),
         onInteract: id => openPassengerCard(id),
         onExit: () => closeWalk(),
       });
