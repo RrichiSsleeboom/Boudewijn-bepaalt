@@ -16,15 +16,19 @@ const LETTER_KEYS = {
 function moveFor(e) {
   return ARROW_KEYS[e.code] ?? LETTER_KEYS[(e.key ?? '').toLowerCase()] ?? null;
 }
+import { getSensitivity } from './settings.js';
+
 const MAX_PITCH = 1.45;
-const LOOK_SPEED = 0.0022;   // radians per pixel of mouse movement
+const TOUCH_BOOST = 1.6;     // a finger covers less ground than a mouse, so touch turns a little faster
 const WALK_SPEED = 3.2;      // metres per second
 const RUN_FACTOR = 1.7;
 const PLAYER_RADIUS = 0.3;
 const EYE_HEIGHT = 1.65;
 
-export function createFirstPerson({ engine, element, touchUi = null, actions = {}, bounds = null, sensitivity = 1 }) {
+// sensitivity: radians of turn per pixel of mouse movement. Default: the player's setting.
+export function createFirstPerson({ engine, element, touchUi = null, actions = {}, bounds = null, sensitivity = null }) {
   const { THREE, camera } = engine;
+  const turn = sensitivity ?? getSensitivity();
   const position = new THREE.Vector3(0, 0, 0);
   const keys = new Set();
   const colliders = []; // { minX, maxX, minZ, maxZ }
@@ -64,8 +68,16 @@ export function createFirstPerson({ engine, element, touchUi = null, actions = {
   on(window, 'blur', () => keys.clear());
 
   // ----- mouse and pointer lock -----
+  // Raw mouse movement: the operating system's pointer acceleration is switched off,
+  // so the same hand movement always turns the view the same amount.
   on(element, 'click', () => {
-    if (enabled && !locked && element.requestPointerLock) element.requestPointerLock();
+    if (!enabled || locked || !element.requestPointerLock) return;
+    try {
+      const promise = element.requestPointerLock({ unadjustedMovement: true });
+      promise?.catch?.(() => element.requestPointerLock());
+    } catch {
+      element.requestPointerLock();
+    }
   });
   on(document, 'pointerlockchange', () => {
     locked = document.pointerLockElement === element;
@@ -101,7 +113,7 @@ export function createFirstPerson({ engine, element, touchUi = null, actions = {
     });
     on(lookZone, 'pointermove', e => {
       if (e.pointerId !== lookTouch.id) return;
-      applyLook((e.clientX - lookTouch.lastX) / 0.55, (e.clientY - lookTouch.lastY) / 0.55);
+      applyLook((e.clientX - lookTouch.lastX) * TOUCH_BOOST, (e.clientY - lookTouch.lastY) * TOUCH_BOOST);
       lookTouch.lastX = e.clientX;
       lookTouch.lastY = e.clientY;
     });
@@ -133,10 +145,10 @@ export function createFirstPerson({ engine, element, touchUi = null, actions = {
     if (knob) knob.style.transform = '';
   }
 
+  // Turns the view by the mouse movement in pixels. Pitch stays within a little under 90 degrees.
   function applyLook(dx, dy) {
-    const speed = LOOK_SPEED * sensitivity;
-    look.yaw -= dx * speed;
-    look.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, look.pitch - dy * speed));
+    look.yaw -= dx * turn;
+    look.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, look.pitch - dy * turn));
   }
 
   // Returns the new position after moving by (dx, dz), sliding along colliders.

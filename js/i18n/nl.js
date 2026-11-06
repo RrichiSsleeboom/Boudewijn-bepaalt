@@ -181,6 +181,7 @@ export default {
   'menu.quality.low': 'Laag (oudere telefoons)',
 
   'menu.sensitivity': 'Muisgevoeligheid',
+  'menu.sensitivity.low': 'Laag (precies)',
   'menu.sensitivity.normal': 'Normaal',
   'menu.sensitivity.high': 'Hoog',
   'menu.sensitivity.veryhigh': 'Zeer hoog',

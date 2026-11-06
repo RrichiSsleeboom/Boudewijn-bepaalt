@@ -181,6 +181,7 @@ export default {
   'menu.quality.low': 'Low (older phones)',
 
   'menu.sensitivity': 'Mouse sensitivity',
+  'menu.sensitivity.low': 'Low (precise)',
   'menu.sensitivity.normal': 'Normal',
   'menu.sensitivity.high': 'High',
   'menu.sensitivity.veryhigh': 'Very high',

@@ -19,21 +19,36 @@ export function setQuality(value) {
 }
 
 const SENSITIVITY_KEY = 'laatste-trein-sensitivity';
-export const SENSITIVITY = { normal: 1, high: 1.7, veryhigh: 2.6 };
 
-// 'normal', 'high' or 'veryhigh'. The default is 'high'.
+// Sensitivity is given the way FPS players think about it: centimetres of mouse
+// movement for one full turn (360 degrees). Fewer centimetres means faster turning.
+// Browsers report mouse movement in CSS pixels, and 96 CSS pixels make one inch.
+export const PX_PER_CM = 96 / 2.54;
+export const SENSITIVITY = {
+  low: 40,      // slow, precise
+  normal: 30,
+  high: 22,     // the default
+  veryhigh: 14, // fast turns
+};
+const DEFAULT_SENSITIVITY = 'high';
+
+// 'low', 'normal', 'high' or 'veryhigh'. The default is 'high'.
 export function getSensitivityKey() {
   try {
     const key = localStorage.getItem(SENSITIVITY_KEY);
-    return SENSITIVITY[key] !== undefined ? key : 'high';
+    return SENSITIVITY[key] !== undefined ? key : DEFAULT_SENSITIVITY;
   } catch {
-    return 'high';
+    return DEFAULT_SENSITIVITY;
   }
 }
 
-// How fast the mouse turns the view, as a multiplier.
+// Radians of turn per CSS pixel of mouse movement, for the chosen sensitivity.
+export function radiansPerPixel(cmPer360) {
+  return (2 * Math.PI) / (cmPer360 * PX_PER_CM);
+}
+
 export function getSensitivity() {
-  return SENSITIVITY[getSensitivityKey()];
+  return radiansPerPixel(SENSITIVITY[getSensitivityKey()]);
 }
 
 export function setSensitivity(key) {
