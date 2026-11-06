@@ -52,7 +52,9 @@ export function createHud(container, { touch = false } = {}) {
       shoot: q('[data-action="shoot"]'),
     } : null,
     update(world) {
-      q('[data-stat="time"]').textContent = `${t('scav.hud.time')} ${Math.max(0, Math.ceil(world.timeLeft))}s`;
+      q('[data-stat="time"]').textContent = world.timeLeft == null
+        ? t('scav.hud.free')
+        : `${t('scav.hud.time')} ${Math.max(0, Math.ceil(world.timeLeft))}s`;
       const full = '♥'.repeat(Math.max(0, world.hearts));
       const empty = '♡'.repeat(Math.max(0, world.maxHearts - world.hearts));
       q('[data-stat="hearts"]').textContent = `${t('scav.hud.hearts')} ${full}${empty}`;

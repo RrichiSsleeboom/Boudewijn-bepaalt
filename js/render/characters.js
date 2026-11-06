@@ -89,6 +89,16 @@ export function animateZombie(zombie, time, speed) {
   zombie.parts.head.rotation.x = Math.sin(time * 3 + zombie.phase) * 0.08;
 }
 
+// The player's own character (third person): arms and legs swing while walking.
+export function animateWalk(figure, time, moving) {
+  const swing = moving ? Math.sin(time * 9) * 0.6 : 0;
+  figure.parts.legL.rotation.x = swing;
+  figure.parts.legR.rotation.x = -swing;
+  figure.parts.armL.rotation.x = -swing * 0.8;
+  figure.parts.armR.rotation.x = swing * 0.8;
+  figure.parts.head.rotation.x = 0;
+}
+
 // A survivor waves for help: the right arm is up and swings.
 export function animateWave(figure, time) {
   figure.parts.armR.rotation.x = -2.6 + Math.sin(time * 5) * 0.35;

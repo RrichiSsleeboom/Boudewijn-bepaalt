@@ -17,7 +17,10 @@ function moveFor(e) {
   return ARROW_KEYS[e.code] ?? LETTER_KEYS[(e.key ?? '').toLowerCase()] ?? null;
 }
 import { getSensitivity } from './settings.js';
+import { thirdPersonDistance } from './field-logic.js';
 
+const THIRD_DISTANCE = 2.8;  // metres behind the character
+const THIRD_HEIGHT = 1.9;    // camera height in third person
 const MAX_PITCH = 1.45;
 const TOUCH_BOOST = 1.6;     // a finger covers less ground than a mouse, so touch turns a little faster
 const WALK_SPEED = 3.2;      // metres per second
@@ -26,9 +29,19 @@ const PLAYER_RADIUS = 0.3;
 const EYE_HEIGHT = 1.65;
 
 // sensitivity: radians of turn per pixel of mouse movement. Default: the player's setting.
-export function createFirstPerson({ engine, element, touchUi = null, actions = {}, bounds = null, sensitivity = null }) {
+// view: 'first' or 'third'. avatar: an object that follows the player (shown in third person).
+export function createFirstPerson({
+  engine, element, touchUi = null, actions = {}, bounds = null, sensitivity = null,
+  view: viewOpt = 'first', avatar: avatarOpt = null,
+}) {
   const { THREE, camera } = engine;
   const turn = sensitivity ?? getSensitivity();
+  let view = viewOpt;
+  const avatar = avatarOpt;
+  let moving = false;
+
+  // The horizontal direction the player looks in, as a unit vector on the floor.
+  const forward = () => ({ x: -Math.sin(look.yaw), z: -Math.cos(look.yaw) });
   const position = new THREE.Vector3(0, 0, 0);
   const keys = new Set();
   const colliders = []; // { minX, maxX, minZ, maxZ }
@@ -192,7 +205,21 @@ export function createFirstPerson({ engine, element, touchUi = null, actions = {
       position.x = Math.max(bounds.minX + PLAYER_RADIUS, Math.min(bounds.maxX - PLAYER_RADIUS, position.x));
       position.z = Math.max(bounds.minZ + PLAYER_RADIUS, Math.min(bounds.maxZ - PLAYER_RADIUS, position.z));
     }
-    camera.position.set(position.x, position.y + EYE_HEIGHT, position.z);
+    moving = len > 0.01;
+
+    if (avatar) {
+      avatar.visible = view === 'third';
+      avatar.position.set(position.x, 0, position.z);
+      avatar.rotation.y = look.yaw;
+    }
+    if (view === 'third') {
+      // The camera floats behind the character, and pulls in when a wall is in the way.
+      const dir = forward();
+      const d = thirdPersonDistance(position, dir, colliders, THIRD_DISTANCE);
+      camera.position.set(position.x - dir.x * d, THIRD_HEIGHT, position.z - dir.z * d);
+    } else {
+      camera.position.set(position.x, position.y + EYE_HEIGHT, position.z);
+    }
     camera.rotation.set(look.pitch, look.yaw, 0, 'YXZ');
   };
   const unsubscribe = engine.onUpdate(update);
@@ -210,8 +237,13 @@ export function createFirstPerson({ engine, element, touchUi = null, actions = {
       look.pitch = pitch;
     },
     isLocked: () => locked,
-    // The horizontal direction the player looks in, as a unit vector on the floor.
-    forward: () => ({ x: -Math.sin(look.yaw), z: -Math.cos(look.yaw) }),
+    forward,
+    isMoving: () => moving,
+    // Switches between first and third person while the game runs.
+    setView(value) {
+      view = value === 'third' ? 'third' : 'first';
+      if (avatar) avatar.visible = view === 'third';
+    },
     setEnabled(value) {
       enabled = value;
       if (!value) keys.clear();

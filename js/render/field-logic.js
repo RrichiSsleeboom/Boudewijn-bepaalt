@@ -163,6 +163,23 @@ export function slotUsable(slot, ammo) {
   return true;
 }
 
+// How far behind the player the camera can sit (third person) without going into a wall.
+// dir is the direction the player looks in; the camera sits on the opposite side.
+// The whole line from the player to the camera must be free, not only the camera spot.
+export function thirdPersonDistance(player, dir, colliders, maxDist = 2.8) {
+  for (let d = maxDist; d >= 0.6; d -= 0.2) {
+    let free = true;
+    for (let s = 0.5; s <= d + 1e-9; s += 0.2) {
+      if (blockedAt(player.x - dir.x * s, player.z - dir.z * s, 0.2, colliders)) {
+        free = false;
+        break;
+      }
+    }
+    if (free) return d;
+  }
+  return 0.6;
+}
+
 // A random spawn point just outside the field edge, so zombies come in from all sides.
 export function spawnPoint(bounds, rand) {
   const side = Math.floor(rand() * 4);

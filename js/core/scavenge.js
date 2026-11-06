@@ -80,12 +80,15 @@ export function describeLoot(collected, lang = 'nl') {
 // Applies the result of a scavenge run. Takes one day.
 // result: { collected, kills, crewIds, heartsLost, downed, rescued }
 // rescued is the number of survivors found; they join the train while there is room.
+// applyLoot: false when the loot already went into the stock while searching (3D field).
 export function finishScavenge(state, result) {
   const { collected, kills, crewIds, heartsLost, downed } = result;
   const station = currentStation(state);
 
-  for (const key of RESOURCES) {
-    state.stock[key] = (state.stock[key] ?? 0) + (collected[key] ?? 0);
+  if (result.applyLoot !== false) {
+    for (const key of RESOURCES) {
+      state.stock[key] = (state.stock[key] ?? 0) + (collected[key] ?? 0);
+    }
   }
   state.stats.scavenges += 1;
   state.stats.zombiesKilled += kills;

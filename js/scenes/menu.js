@@ -1,6 +1,8 @@
 import { hasSave } from '../core/state.js';
 import { t } from '../i18n/index.js';
-import { getQuality, setQuality, getSensitivityKey, setSensitivity, SENSITIVITY } from '../render/settings.js';
+import {
+  getQuality, setQuality, getSensitivityKey, setSensitivity, SENSITIVITY, getView, setView,
+} from '../render/settings.js';
 
 export function render(root, ctx) {
   const saved = hasSave();
@@ -23,6 +25,12 @@ export function render(root, ctx) {
             <option value="low" ${quality === 'low' ? 'selected' : ''}>${t('menu.quality.low')}</option>
           </select>
         </label>
+        <label class="small-text">${t('menu.view')}
+          <select id="view">
+            <option value="first" ${getView() === 'first' ? 'selected' : ''}>${t('menu.view.first')}</option>
+            <option value="third" ${getView() === 'third' ? 'selected' : ''}>${t('menu.view.third')}</option>
+          </select>
+        </label>
         <label class="small-text">${t('menu.sensitivity')}
           <select id="sensitivity">
             ${Object.keys(SENSITIVITY).map(k => `<option value="${k}" ${k === sensitivity ? 'selected' : ''}>${t(`menu.sensitivity.${k}`)}</option>`).join('')}
@@ -34,6 +42,7 @@ export function render(root, ctx) {
 
   root.querySelector('#quality').addEventListener('change', e => setQuality(e.target.value));
   root.querySelector('#sensitivity').addEventListener('change', e => setSensitivity(e.target.value));
+  root.querySelector('#view').addEventListener('change', e => setView(e.target.value));
 
   root.querySelector('[data-act="new"]').addEventListener('click', () => ctx.startNewGame());
   root.querySelector('[data-act="continue"]')?.addEventListener('click', () => ctx.continueGame());

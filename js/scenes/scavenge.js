@@ -95,12 +95,11 @@ export function render(root, ctx) {
       if (cancelled) return;
       field = runField({
         container: stage,
+        state,
         seed: state.seed,
         station: state.station,
         crates,
         hearts,
-        ammo: state.stock.ammo,
-        carried: { pistol: state.stock.pistol ?? 0, bat: state.stock.bat ?? 0 },
         crewSize: crewIds.length,
         lang: state.lang,
         engine: { quality: getQuality() },
@@ -159,6 +158,7 @@ export function render(root, ctx) {
         heartsLost: summary.heartsLost,
         downed: summary.downed,
         rescued: summary.rescued ?? 0,
+        applyLoot: summary.applyLoot, // false when the 3D search already added the loot
       });
       ctx.save();
       showBuildOffer();

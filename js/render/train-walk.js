@@ -4,6 +4,8 @@ import { createEngine } from './engine.js';
 import { createFirstPerson } from './controls.js';
 import { createHud, isTouchDevice } from './hud.js';
 import { buildTrain, TRAIN_BOUNDS } from './train-world.js';
+import { createMaterials, createPassenger, animateWalk } from './characters.js';
+import { getView } from './settings.js';
 import { isAlive } from '../core/passengers.js';
 import { t, loc } from '../i18n/index.js';
 import { COUNTRIES, JOBS } from '../data/names.js';
@@ -22,11 +24,18 @@ export function runTrainWalk({ container, passengers, lang = 'nl', quality = 'hi
   const train = buildTrain(engine, passengers, { quality, lang });
   const seats = train.figures.map(f => f.seat);
 
+  // The character you play, seen in third person when chosen in the menu.
+  const mats = createMaterials(engine.THREE);
+  const avatar = createPassenger(engine.THREE, mats, 1);
+  engine.scene.add(avatar.group);
+
   const controls = createFirstPerson({
     engine,
     element: engine.renderer.domElement,
     touchUi: hud.touchUi,
     bounds: TRAIN_BOUNDS,
+    view: getView(),
+    avatar: avatar.group,
     actions: { interact: () => talk() },
   });
   controls.colliders.push(...train.colliders);
@@ -108,6 +117,7 @@ export function runTrainWalk({ container, passengers, lang = 'nl', quality = 'hi
       prompt.textContent = '';
       return;
     }
+    animateWalk(avatar, performance.now() / 1000, controls.isMoving());
     const next = nearestPassenger();
     if (next !== target) {
       target = next;

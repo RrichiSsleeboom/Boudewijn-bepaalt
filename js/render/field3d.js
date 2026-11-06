@@ -1,38 +1,43 @@
-// The scavenge field in 3D: the loop that moves the zombies, handles the fight,
-// the crates, the survivors and the hotbar, and reports the result.
-// The rules live in field-logic.js and core/scavenge.js.
+// The scavenge field in 3D. The search has no time limit: you stop when you choose.
+// Loot goes straight into the train's stock, so the bag, the hotbar and building
+// work during the search. The rules live in field-logic.js and core/scavenge.js.
 import { createEngine } from './engine.js';
 import { createFirstPerson } from './controls.js';
 import { createHud, isTouchDevice } from './hud.js';
 import { buildArena } from './station-world.js';
 import {
-  createMaterials, createZombie, animateZombie, createPassenger, animateWave,
+  createMaterials, createZombie, animateZombie, createPassenger, animateWave, animateWalk,
 } from './characters.js';
 import {
   FIELD, layoutArena, zombieStep, meleeTargets, shotTarget, crateCollected, spawnPoint,
   placeSurvivors, weaponSlots, slotUsable,
 } from './field-logic.js';
 import { createRng } from '../core/rng.js';
-import { survivorsFor, RESOURCE_LABELS } from '../core/scavenge.js';
-import { getSensitivity } from './settings.js';
+import { survivorsFor, RESOURCE_LABELS, RESOURCES } from '../core/scavenge.js';
+import { canBuild, startBuilding } from '../core/rebuild.js';
+import { MODULES, MODULE_IDS } from '../data/modules.js';
+import { getSensitivity, getView } from './settings.js';
+import { esc } from '../ui/dom.js';
 import { t, loc } from '../i18n/index.js';
 
 const FALL_TIME = 0.8;
-const HOTBAR_REFRESH = 0.25; // seconds between hotbar redraws (ammo can change)
+const HOTBAR_REFRESH = 0.25; // seconds between hotbar redraws
 
-// Runs one scavenge run in container. onEnd receives
-// { collected, kills, heartsLost, downed, rescued }. Returns { dispose }.
-// crates: the list from buildCrates ({ type, amount }). carried: { pistol, bat } from the train.
+// Runs one scavenge run in container. state: the game state (stock, building, modules).
+// onEnd receives { collected, kills, heartsLost, downed, rescued, applyLoot: false }.
+// Returns { dispose }.
 export function runField({
-  container, engine: engineOpts = {}, seed, station, crates, hearts, ammo, carried = {},
-  crewSize = 3, lang = 'nl', onEnd,
+  container, engine: engineOpts = {}, state, seed, station, crates, hearts, crewSize = 3,
+  lang = 'nl', onEnd,
 }) {
   const quality = engineOpts.quality ?? 'high';
+  const stock = state.stock;
   const engine = createEngine(container, { fov: 72, quality });
   const { THREE } = engine;
   const touch = isTouchDevice();
   const hud = createHud(container, { touch });
   const mats = createMaterials(THREE);
+  const view = getView();
 
   // The layout depends on the station and the game seed, so each visit looks the same.
   const rng = createRng((seed + station * 7919) >>> 0);
@@ -49,12 +54,18 @@ export function runField({
     return { x: s.x, z: s.z, fig, rescued: false };
   });
 
+  // The character you play, seen in third person.
+  const avatar = createPassenger(THREE, mats, 0);
+  engine.scene.add(avatar.group);
+
   const controls = createFirstPerson({
     engine,
     element: engine.renderer.domElement,
     touchUi: hud.touchUi,
     bounds: layout.bounds,
     sensitivity: getSensitivity(),
+    view,
+    avatar: avatar.group,
     actions: {
       attack: () => strike(),
       shoot: () => fire(),
@@ -66,10 +77,6 @@ export function runField({
   controls.setPosition(layout.start.x, layout.start.z);
   // With yaw 0 the view points to -Z. A yaw of -PI/2 points to +X, towards the middle of the arena.
   controls.setLook(-Math.PI / 2, -0.12);
-  if (hud.buttons) {
-    hud.buttons.melee.addEventListener('pointerdown', e => { e.preventDefault(); strike(); });
-    hud.buttons.shoot.addEventListener('pointerdown', e => { e.preventDefault(); fire(); });
-  }
 
   // Crates in the world: each one knows its loot.
   const cratesWorld = layout.crates.map((c, i) => ({
@@ -81,12 +88,9 @@ export function runField({
     hearts,
     maxHearts: hearts,
     heartsLost: 0,
-    ammo,
     kills: 0,
-    collected: {},
-    carried: { pistol: carried.pistol ?? 0, bat: carried.bat ?? 0 }, // weapons the crew holds
+    collected: {},     // what this search found, for the summary
     slot: 0,
-    timeLeft: FIELD.DURATION,
     cratesLeft: cratesWorld.length,
     rescued: 0,
     zombies: [],
@@ -96,22 +100,18 @@ export function runField({
     invuln: 0,
     time: 0,
     hotbarT: 0,
+    panel: null,       // 'build' | 'bag' | null
     over: false,
     downed: false,
     ended: false,
   };
   let reported = false;
 
-  function slots() {
-    return weaponSlots(world.carried);
-  }
-
-  function currentWeapon() {
-    return slots()[world.slot]?.id ?? 'fists';
-  }
+  const slots = () => weaponSlots({ pistol: stock.pistol ?? 0, bat: stock.bat ?? 0 });
+  const currentWeapon = () => slots()[world.slot]?.id ?? 'fists';
 
   function refreshHotbar() {
-    hud.setHotbar(slots(), world.slot, world.ammo, selectSlot);
+    hud.setHotbar(slots(), world.slot, stock.ammo, selectSlot);
   }
 
   // Choosing a weapon. A slot you do not carry gives a message instead.
@@ -142,9 +142,8 @@ export function runField({
 
   // Hitting with fists or with the bat.
   function strike() {
-    if (world.meleeCool > 0 || world.over) return;
-    const weapon = currentWeapon();
-    const bat = weapon === 'bat';
+    if (world.meleeCool > 0 || world.over || world.panel) return;
+    const bat = currentWeapon() === 'bat';
     const range = bat ? FIELD.BAT_RANGE : FIELD.MELEE_RANGE;
     world.meleeCool = bat ? FIELD.MELEE_COOLDOWN * 1.3 : FIELD.MELEE_COOLDOWN;
     const hit = meleeTargets(world.zombies, controls.position, controls.forward(), range);
@@ -154,22 +153,123 @@ export function runField({
 
   // Shooting with the pistol, which needs the pistol in hand and ammo.
   function fire() {
-    if (world.over) return;
+    if (world.over || world.panel) return;
     if (currentWeapon() !== 'pistol') {
       hud.message(t('scav.msg.needPistol'));
       return;
     }
     if (world.shotCool > 0) return;
-    if (world.ammo <= 0) {
+    if (stock.ammo <= 0) {
       hud.message(t('scav.msg.noAmmo'));
       return;
     }
     world.shotCool = FIELD.SHOT_COOLDOWN;
-    world.ammo -= 1;
+    stock.ammo -= 1;
     const target = shotTarget(world.zombies, controls.position, controls.forward());
     if (target) kill(target);
     hud.message(target ? t('scav.msg.hit') : '');
   }
+
+  // ----- panels: building and the bag -----
+
+  function openPanel(name) {
+    world.panel = name;
+    controls.setEnabled(false);
+    if (document.pointerLockElement) document.exitPointerLock?.();
+    drawPanel();
+  }
+
+  function closePanel() {
+    world.panel = null;
+    panelEl.hidden = true;
+    controls.setEnabled(true);
+  }
+
+  function togglePanel(name) {
+    if (world.panel === name) closePanel();
+    else openPanel(name);
+  }
+
+  function drawPanel() {
+    if (!world.panel) return;
+    panelEl.hidden = false;
+    if (world.panel === 'build') {
+      panelEl.innerHTML = `
+        <div class="field-panel-box" role="dialog" aria-label="${t('field.build')}">
+          <h3>${t('field.build')}</h3>
+          <p class="small-text muted">${t('field.buildIntro')}</p>
+          ${state.building ? `<p class="small-text">${t('rebuild.inProgress', { name: esc(loc(MODULES[state.building.id].name, lang)), n: state.building.daysLeft })}</p>` : ''}
+          <div class="field-panel-list">
+            ${MODULE_IDS.map(id => {
+              const m = MODULES[id];
+              const built = state.modules.includes(id);
+              const check = canBuild(state, id, { anywhere: true });
+              const reason = built ? t('rebuild.built') : check.ok ? costOf(m) : t(`rebuild.reason.${check.reason}`);
+              return `<div class="field-row">
+                <div><strong>${esc(loc(m.name, lang))}</strong><div class="small-text muted">${esc(reason)}</div></div>
+                <button class="btn small" type="button" data-build="${id}" ${check.ok ? '' : 'disabled'}>${t('rebuild.build')}</button>
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="row" style="margin-top:10px"><button class="btn" type="button" data-close>${t('common.close')}</button></div>
+        </div>`;
+    } else {
+      const rows = RESOURCES.map(key => `
+        <div class="field-row"><span>${esc(loc(RESOURCE_LABELS[key], lang))}</span><strong>${Math.floor(stock[key] ?? 0)}</strong></div>`).join('');
+      const found = Object.entries(world.collected).filter(([, n]) => n > 0)
+        .map(([k, n]) => `${n} ${esc(loc(RESOURCE_LABELS[k], lang))}`).join(', ');
+      panelEl.innerHTML = `
+        <div class="field-panel-box" role="dialog" aria-label="${t('field.bag')}">
+          <h3>${t('field.bag')}</h3>
+          <p class="small-text"><strong>${t('hb.label')}:</strong> ${esc(t(`hb.${currentWeapon()}`))}</p>
+          <div class="field-panel-list">${rows}</div>
+          <p class="small-text muted" style="margin-top:8px">${t('field.foundNow')}: ${found || t('field.nothingYet')}</p>
+          <div class="row" style="margin-top:10px"><button class="btn" type="button" data-close>${t('common.close')}</button></div>
+        </div>`;
+    }
+    panelEl.querySelector('[data-close]')?.addEventListener('click', closePanel);
+    panelEl.querySelectorAll('[data-build]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.build;
+        const result = startBuilding(state, id, { anywhere: true });
+        if (!result.ok) {
+          hud.message(t(`rebuild.reason.${result.reason}`));
+          return;
+        }
+        hud.message(t('rebuild.started', { name: loc(MODULES[id].name, lang) }));
+        drawPanel();
+      });
+    });
+  }
+
+  function costOf(m) {
+    return Object.entries(m.cost).map(([k, n]) => `${n} ${loc(RESOURCE_LABELS[k], lang)}`).join(', ');
+  }
+
+  // The panel sits on top of the view; closing it returns to the search.
+  const panelEl = document.createElement('div');
+  panelEl.className = 'field-panel';
+  panelEl.hidden = true;
+  container.appendChild(panelEl);
+
+  // Buttons for building, the bag and stopping the search. Work with keys and touch.
+  const bar = document.createElement('div');
+  bar.className = 'field-actions';
+  bar.innerHTML = `
+    <button type="button" class="btn small" data-act="build">${t('field.build')} (B)</button>
+    <button type="button" class="btn small" data-act="bag">${t('field.bag')} (I)</button>
+    <button type="button" class="btn small primary" data-act="done">${t('field.done')}</button>`;
+  container.appendChild(bar);
+  bar.querySelector('[data-act="build"]').addEventListener('click', () => togglePanel('build'));
+  bar.querySelector('[data-act="bag"]').addEventListener('click', () => togglePanel('bag'));
+  bar.querySelector('[data-act="done"]').addEventListener('click', () => finishSearch());
+
+  const onKey = e => {
+    if (e.code === 'KeyB' && !e.repeat) togglePanel('build');
+    if (e.code === 'KeyI' && !e.repeat) togglePanel('bag');
+    if (e.code === 'Escape' && world.panel) closePanel();
+  };
+  window.addEventListener('keydown', onKey);
 
   function step(dt) {
     if (world.over) {
@@ -177,9 +277,6 @@ export function runField({
       return;
     }
     world.time += dt;
-    world.timeLeft -= dt;
-    if (world.timeLeft <= 0) world.over = true;
-
     world.meleeCool = Math.max(0, world.meleeCool - dt);
     world.shotCool = Math.max(0, world.shotCool - dt);
     world.invuln = Math.max(0, world.invuln - dt);
@@ -232,31 +329,50 @@ export function runField({
       }
     }
 
-    // Crates: walk over them to take the loot.
+    // Crates: walk over them. The loot goes straight into the stock.
     for (const c of crateCollected(cratesWorld, player)) {
       c.taken = true;
       if (c.mesh) c.mesh.visible = false;
       world.collected[c.type] = (world.collected[c.type] ?? 0) + c.amount;
-      if (c.type === 'ammo') world.ammo += c.amount;
-      if (c.type === 'pistol' || c.type === 'bat') world.carried[c.type] += c.amount;
+      stock[c.type] = (stock[c.type] ?? 0) + c.amount;
       world.cratesLeft -= 1;
       hud.message(t('scav.msg.crate', { n: c.amount, type: loc(RESOURCE_LABELS[c.type], lang) }));
       refreshHotbar();
     }
-    if (cratesWorld.length > 0 && world.cratesLeft <= 0) world.over = true;
+    if (cratesWorld.length > 0 && world.cratesLeft <= 0 && !world.allFoundShown) {
+      world.allFoundShown = true;
+      hud.message(t('field.allFound'));
+    }
+
+    // The character moves in third person.
+    animateWalk(avatar, world.time, controls.isMoving());
 
     world.hotbarT -= dt;
     if (world.hotbarT <= 0) {
       world.hotbarT = HOTBAR_REFRESH;
       refreshHotbar();
     }
-    hud.update(world);
+    hud.update({
+      timeLeft: null, // no time limit
+      hearts: world.hearts,
+      maxHearts: world.maxHearts,
+      ammo: stock.ammo,
+      cratesLeft: world.cratesLeft,
+      rescued: world.rescued,
+    });
+  }
+
+  // The player decides when to stop searching.
+  function finishSearch() {
+    if (world.over) return;
+    world.over = true;
   }
 
   function finish() {
     world.ended = true;
     if (reported) return;
     reported = true;
+    closePanel();
     // Stop the loop after this frame and hand the result to the scene.
     setTimeout(() => {
       engine.stop();
@@ -266,8 +382,14 @@ export function runField({
         heartsLost: world.heartsLost,
         downed: world.downed,
         rescued: world.rescued,
+        applyLoot: false, // the loot is already in the stock
       });
     }, 0);
+  }
+
+  if (hud.buttons) {
+    hud.buttons.melee.addEventListener('pointerdown', e => { e.preventDefault(); strike(); });
+    hud.buttons.shoot.addEventListener('pointerdown', e => { e.preventDefault(); fire(); });
   }
 
   engine.onUpdate(step);
@@ -276,12 +398,13 @@ export function runField({
 
   return {
     dispose() {
+      window.removeEventListener('keydown', onKey);
       controls.dispose();
       hud.dispose();
       arena.dispose();
+      bar.remove();
+      panelEl.remove();
       engine.dispose();
     },
-    // For tests: a copy of the state.
-    snapshot: () => ({ ...world, player: { ...controls.position } }),
   };
 }

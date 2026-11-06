@@ -59,6 +59,25 @@ export function setSensitivity(key) {
   }
 }
 
+const VIEW_KEY = 'laatste-trein-view';
+
+// 'first' (eyes of your character) or 'third' (the character is seen from behind).
+export function getView() {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'third' ? 'third' : 'first';
+  } catch {
+    return 'first';
+  }
+}
+
+export function setView(value) {
+  try {
+    localStorage.setItem(VIEW_KEY, value === 'third' ? 'third' : 'first');
+  } catch {
+    /* no storage: the default stays */
+  }
+}
+
 // True when the player asked the system for less motion. Camera orbits then stop.
 export function prefersReducedMotion() {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
