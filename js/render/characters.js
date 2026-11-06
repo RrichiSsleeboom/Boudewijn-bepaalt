@@ -89,6 +89,12 @@ export function animateZombie(zombie, time, speed) {
   zombie.parts.head.rotation.x = Math.sin(time * 3 + zombie.phase) * 0.08;
 }
 
+// A survivor waves for help: the right arm is up and swings.
+export function animateWave(figure, time) {
+  figure.parts.armR.rotation.x = -2.6 + Math.sin(time * 5) * 0.35;
+  figure.parts.armL.rotation.x = -0.2;
+}
+
 // Passengers sit in the train, or stand, with their own clothes.
 export function createPassenger(THREE, mats, seed) {
   const skin = mats.skin[seed % mats.skin.length];

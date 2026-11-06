@@ -23,7 +23,7 @@ const RUN_FACTOR = 1.7;
 const PLAYER_RADIUS = 0.3;
 const EYE_HEIGHT = 1.65;
 
-export function createFirstPerson({ engine, element, touchUi = null, actions = {}, bounds = null }) {
+export function createFirstPerson({ engine, element, touchUi = null, actions = {}, bounds = null, sensitivity = 1 }) {
   const { THREE, camera } = engine;
   const position = new THREE.Vector3(0, 0, 0);
   const keys = new Set();
@@ -52,6 +52,8 @@ export function createFirstPerson({ engine, element, touchUi = null, actions = {
     if (e.code === 'Space' && !e.repeat) actions.attack?.();
     if (e.code === 'KeyF' && !e.repeat) actions.shoot?.();
     if (e.code === 'KeyE' && !e.repeat) actions.interact?.();
+    // Digit keys 1 to 9 choose a hotbar slot.
+    if (/^Digit[1-9]$/.test(e.code) && !e.repeat) actions.select?.(Number(e.code.slice(5)) - 1);
   });
   on(window, 'keyup', e => {
     const move = moveFor(e);
@@ -132,8 +134,9 @@ export function createFirstPerson({ engine, element, touchUi = null, actions = {
   }
 
   function applyLook(dx, dy) {
-    look.yaw -= dx * LOOK_SPEED;
-    look.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, look.pitch - dy * LOOK_SPEED));
+    const speed = LOOK_SPEED * sensitivity;
+    look.yaw -= dx * speed;
+    look.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, look.pitch - dy * speed));
   }
 
   // Returns the new position after moving by (dx, dz), sliding along colliders.

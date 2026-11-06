@@ -1,12 +1,13 @@
-import { aliveOf } from './passengers.js';
+import { aliveOf, makePassenger, TRAIN_CAPACITY } from './passengers.js';
 import { addLog } from './log.js';
 import { advanceDay } from './day.js';
 import { currentStation } from './travel.js';
+import { withRng } from './rng.js';
 
 export const CREW_MIN = 2;
-export const CREW_MAX = 4;
+export const CREW_MAX = 6;
 export const CRATE_UNIT = 40; // one crate per 40 units of a resource
-export const RESOURCES = ['food', 'fuel', 'ammo', 'medicine', 'materials', 'parts'];
+export const RESOURCES = ['food', 'fuel', 'ammo', 'medicine', 'materials', 'parts', 'pistol', 'bat'];
 
 export const RESOURCE_LABELS = {
   food: { nl: 'voedsel', en: 'food' },
@@ -15,6 +16,8 @@ export const RESOURCE_LABELS = {
   medicine: { nl: 'medicijnen', en: 'medicine' },
   materials: { nl: 'materiaal', en: 'materials' },
   parts: { nl: 'onderdelen', en: 'parts' },
+  pistol: { nl: 'pistolen', en: 'pistols' },
+  bat: { nl: 'knuppels', en: 'clubs' },
 };
 
 const HEART_DAMAGE_HEALTH = 6; // health lost per heart the crew lost
@@ -41,10 +44,15 @@ export function defaultCrew(passengers) {
     .map(p => p.id);
 }
 
-// Soldiers in the crew give extra hearts (lives) in the field.
+// Soldiers in the crew give extra hearts (lives), and a crew of five or more gets one more.
 export function maxHearts(crew) {
   const soldiers = crew.filter(p => p.skill === 'soldier').length;
-  return 3 + Math.min(2, soldiers);
+  return 3 + Math.min(2, soldiers) + (crew.length >= 5 ? 1 : 0);
+}
+
+// Survivors hiding at a station: more people in the crew find more of them.
+export function survivorsFor(crewSize) {
+  return 1 + Math.floor(crewSize / 2);
 }
 
 // Splits the loot of a station into crates. Each crate holds one resource portion.
@@ -70,7 +78,8 @@ export function describeLoot(collected, lang = 'nl') {
 }
 
 // Applies the result of a scavenge run. Takes one day.
-// result: { collected, kills, crewIds, heartsLost, downed }
+// result: { collected, kills, crewIds, heartsLost, downed, rescued }
+// rescued is the number of survivors found; they join the train while there is room.
 export function finishScavenge(state, result) {
   const { collected, kills, crewIds, heartsLost, downed } = result;
   const station = currentStation(state);
@@ -96,10 +105,25 @@ export function finishScavenge(state, result) {
     for (const p of crew) if (p.health > 0) p.health = Math.min(100, p.health + MEDIC_HEAL);
   }
 
+  const joined = rescueSurvivors(state, result.rescued ?? 0);
+
   addLog(state, {
-    nl: `Team terug uit ${station.name.nl}: ${describeLoot(collected, 'nl')}. ${kills} zombies uitgeschakeld.`,
-    en: `Team back from ${station.name.en}: ${describeLoot(collected, 'en')}. ${kills} zombies taken down.`,
+    nl: `Team terug uit ${station.name.nl}: ${describeLoot(collected, 'nl')}. ${kills} zombies uitgeschakeld.${joined ? ` ${joined} overlevende(n) meegenomen.` : ''}`,
+    en: `Team back from ${station.name.en}: ${describeLoot(collected, 'en')}. ${kills} zombies taken down.${joined ? ` ${joined} survivor(s) brought along.` : ''}`,
   });
 
   advanceDay(state);
+}
+
+// New passengers join the train, as far as there is room. Returns how many joined.
+export function rescueSurvivors(state, count) {
+  const room = Math.max(0, TRAIN_CAPACITY - state.passengers.length);
+  const n = Math.min(room, count);
+  if (n <= 0) return 0;
+  withRng(state, rng => {
+    for (let i = 0; i < n; i++) {
+      state.passengers.push(makePassenger(rng, state.passengers.length));
+    }
+  });
+  return n;
 }

@@ -552,6 +552,34 @@ select, input[type="text"] {
 
 .walk-hint[hidden] { display: none; }
 
+.hud-hotbar {
+  position: absolute;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.hb-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 68px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #f1e9da;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.hb-slot.selected { border-color: var(--accent); }
+.hb-slot:disabled { opacity: 0.35; cursor: not-allowed; }
+.hb-key { font-weight: 700; opacity: 0.7; }
+
 .scene-error {
   position: absolute;
   left: 50%;

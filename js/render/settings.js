@@ -18,6 +18,32 @@ export function setQuality(value) {
   }
 }
 
+const SENSITIVITY_KEY = 'laatste-trein-sensitivity';
+export const SENSITIVITY = { normal: 1, high: 1.7, veryhigh: 2.6 };
+
+// 'normal', 'high' or 'veryhigh'. The default is 'high'.
+export function getSensitivityKey() {
+  try {
+    const key = localStorage.getItem(SENSITIVITY_KEY);
+    return SENSITIVITY[key] !== undefined ? key : 'high';
+  } catch {
+    return 'high';
+  }
+}
+
+// How fast the mouse turns the view, as a multiplier.
+export function getSensitivity() {
+  return SENSITIVITY[getSensitivityKey()];
+}
+
+export function setSensitivity(key) {
+  try {
+    if (SENSITIVITY[key] !== undefined) localStorage.setItem(SENSITIVITY_KEY, key);
+  } catch {
+    /* no storage: the default stays */
+  }
+}
+
 // True when the player asked the system for less motion. Camera orbits then stop.
 export function prefersReducedMotion() {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;

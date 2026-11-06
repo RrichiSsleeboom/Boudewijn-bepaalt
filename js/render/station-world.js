@@ -10,6 +10,8 @@ const CRATE_COLOR = {
   medicine: '#d9d9d0',
   materials: '#5f6f80',
   parts: '#c77a2c',
+  pistol: '#2e2e33',
+  bat: '#b08a5a',
 };
 
 // Returns { crates: [{ mesh, index }], dispose() } and adds everything to the scene.

@@ -23,13 +23,14 @@ export const hasSkill = (state, skill) =>
   aliveOf(state.passengers).some(p => p.skill === skill && p.age >= 14);
 
 // Why a module cannot be built now, or { ok: true }.
-export function canBuild(state, id) {
+// anywhere: right after a search, the crew can build where they stand, even without a settlement.
+export function canBuild(state, id, { anywhere = false } = {}) {
   const module = MODULES[id];
   if (!module) return { ok: false, reason: 'unknown' };
   if (state.status !== 'playing') return { ok: false, reason: 'end' };
   if (!state.atStation) return { ok: false, reason: 'travelling' };
   if (state.pending) return { ok: false, reason: 'pending' };
-  if (!here(state).settlement) return { ok: false, reason: 'notSettlement' };
+  if (!anywhere && !here(state).settlement) return { ok: false, reason: 'notSettlement' };
   if (hasModule(state, id)) return { ok: false, reason: 'built' };
   if (state.building) return { ok: false, reason: 'busy' };
   if (!hasSkill(state, module.skill)) return { ok: false, reason: 'skill' };
@@ -41,8 +42,8 @@ export function canBuild(state, id) {
 
 // Pays the cost and starts construction. It finishes after module.days days,
 // also when the train has moved on.
-export function startBuilding(state, id) {
-  const check = canBuild(state, id);
+export function startBuilding(state, id, opts = {}) {
+  const check = canBuild(state, id, opts);
   if (!check.ok) return check;
   const module = MODULES[id];
   for (const [key, amount] of Object.entries(module.cost)) state.stock[key] -= amount;

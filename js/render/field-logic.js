@@ -8,6 +8,8 @@ export const FIELD = {
   ZOMBIE_SPEED: [1.1, 1.9], // metres per second
   CONTACT_RANGE: 1.1,      // a zombie this close hurts the party
   MELEE_RANGE: 2.2,
+  BAT_RANGE: 2.8,          // a bat reaches further than fists
+  RESCUE_RANGE: 1.6,       // how close to a survivor you must be to bring them along
   MELEE_CONE: Math.cos(Math.PI / 3), // 120 degrees in front of the player
   MELEE_COOLDOWN: 0.5,
   SHOT_COOLDOWN: 0.3,
@@ -41,13 +43,13 @@ export function blockedAt(x, z, radius, colliders) {
 }
 
 // Zombies in melee range and in front of the player. forward is a unit vector {x, z}.
-export function meleeTargets(zombies, player, forward) {
+export function meleeTargets(zombies, player, forward, range = FIELD.MELEE_RANGE) {
   return zombies.filter(z => {
     if (z.dead) return false;
     const dx = z.x - player.x;
     const dz = z.z - player.z;
     const dist = Math.hypot(dx, dz);
-    if (dist > FIELD.MELEE_RANGE || dist === 0) return dist === 0;
+    if (dist > range || dist === 0) return dist === 0;
     return (dx * forward.x + dz * forward.z) / dist >= FIELD.MELEE_CONE;
   });
 }
@@ -130,6 +132,35 @@ function overlapsAny(x, z, w, d, colliders) {
 
 function nearStart(x, z) {
   return Math.hypot(x - START.x, z - START.z) < 5;
+}
+
+// Survivors hiding in the arena. They wave; walking up to one brings them along.
+export function placeSurvivors(rand, count, colliders) {
+  const out = [];
+  let guard = 0;
+  while (out.length < count && guard++ < 2000) {
+    const x = ARENA.minX + 3 + rand() * (ARENA.maxX - ARENA.minX - 6);
+    const z = ARENA.minZ + 3 + rand() * (ARENA.maxZ - ARENA.minZ - 6);
+    if (blockedAt(x, z, 0.8, colliders) || nearStart(x, z)) continue;
+    out.push({ x, z, rescued: false });
+  }
+  return out;
+}
+
+// The weapons the crew carries, as hotbar slots. Fists are always there.
+// The pistol needs ammo to fire; the bat and the fists need nothing.
+export const WEAPON_SLOTS = ['fists', 'bat', 'pistol'];
+export function weaponSlots(carried) {
+  return [
+    { id: 'fists', count: 1 },
+    { id: 'bat', count: carried.bat ?? 0 },
+    { id: 'pistol', count: carried.pistol ?? 0 },
+  ];
+}
+export function slotUsable(slot, ammo) {
+  if (slot.count <= 0) return false;
+  if (slot.id === 'pistol') return ammo > 0;
+  return true;
 }
 
 // A random spawn point just outside the field edge, so zombies come in from all sides.

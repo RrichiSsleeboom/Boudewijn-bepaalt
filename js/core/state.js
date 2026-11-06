@@ -13,6 +13,8 @@ export const START_STOCK = {
   ammo: 15,
   medicine: 4,
   parts: 4,
+  pistol: 1,            // spare pistols the crew can take out
+  bat: 1,               // baseball bats / clubs the crew can take out
 };
 
 // Creates a new game. The seed is optional, so tests can pass a fixed one.

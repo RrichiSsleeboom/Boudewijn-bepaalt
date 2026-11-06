@@ -4,10 +4,13 @@ import {
   CREW_MIN, CREW_MAX, canScavenge, defaultCrew, eligibleCrew,
   maxHearts, buildCrates, finishScavenge, describeLoot,
 } from '../core/scavenge.js';
+import { canBuild, startBuilding } from '../core/rebuild.js';
+import { MODULES, MODULE_IDS } from '../data/modules.js';
 import { esc } from '../ui/dom.js';
 import { getQuality } from '../render/settings.js';
 
-// Scavenging: choose the crew (2D), then search the station in first person (3D).
+// Scavenging: choose the crew (2D), search the station in first person (3D),
+// and then build right away with what was found, if you want.
 // If 3D is not available, the search runs automatically and the result is the same.
 export function render(root, ctx) {
   const state = ctx.state;
@@ -97,6 +100,8 @@ export function render(root, ctx) {
         crates,
         hearts,
         ammo: state.stock.ammo,
+        carried: { pistol: state.stock.pistol ?? 0, bat: state.stock.bat ?? 0 },
+        crewSize: crewIds.length,
         lang: state.lang,
         engine: { quality: getQuality() },
         onEnd,
@@ -121,12 +126,12 @@ export function render(root, ctx) {
         </div>
       </section>`;
     root.querySelector('#act-auto').addEventListener('click', () => {
-      showResult({ collected, kills: 0, heartsLost: 0, downed: false, crewIds });
+      showResult({ collected, kills: 0, heartsLost: 0, downed: false, rescued: 0, crewIds });
     });
     root.querySelector('#act-back').addEventListener('click', () => ctx.go('map'));
   }
 
-  // Step 3: the result. Applying it takes one day and returns the team to the map.
+  // Step 3: the result. Applying it takes one day; then the crew can build right away.
   function showResult(summary) {
     const { crewIds } = summary;
     const lang = state.lang;
@@ -138,6 +143,7 @@ export function render(root, ctx) {
         <ul class="log">
           <li>${t('scav.resultLoot')}: ${esc(describeLoot(summary.collected, lang))}</li>
           <li>${t('scav.resultKills')}: ${summary.kills}</li>
+          <li>${t('scav.resultRescued')}: ${summary.rescued ?? 0}</li>
           <li>${t('scav.resultHearts')}: ${summary.heartsLost}</li>
           <li>${t('scav.resultCrew')}: ${crewNames.join(', ')}</li>
         </ul>
@@ -146,11 +152,63 @@ export function render(root, ctx) {
         </div>
       </section>`;
     root.querySelector('#act-finish').addEventListener('click', () => {
-      finishScavenge(state, { collected: summary.collected, kills: summary.kills, crewIds, heartsLost: summary.heartsLost, downed: summary.downed });
+      finishScavenge(state, {
+        collected: summary.collected,
+        kills: summary.kills,
+        crewIds,
+        heartsLost: summary.heartsLost,
+        downed: summary.downed,
+        rescued: summary.rescued ?? 0,
+      });
       ctx.save();
-      ctx.go('map');
-      ctx.toast(t('scav.done'));
+      showBuildOffer();
     });
+  }
+
+  // Build right away with what was found. Works on any station, not only settlements.
+  function showBuildOffer() {
+    const lang = state.lang;
+    const offer = () => MODULE_IDS.map(id => {
+      const m = MODULES[id];
+      const built = state.modules.includes(id);
+      const check = canBuild(state, id, { anywhere: true });
+      const reason = built ? t('rebuild.built') : check.ok ? '' : t(`rebuild.reason.${check.reason}`);
+      return `
+        <article class="card ${built ? 'gone' : ''}">
+          <div class="name">${esc(loc(m.name, lang))}</div>
+          <div class="small-text muted">${esc(reason)}</div>
+          <button class="btn primary" type="button" data-build="${id}" ${check.ok ? '' : 'disabled'}>${t('rebuild.build')}</button>
+        </article>`;
+    }).join('');
+
+    const draw = () => {
+      root.innerHTML = `
+        <h2>${t('scav.buildTitle')}</h2>
+        <p class="muted">${t('scav.buildIntro')}</p>
+        ${state.building ? `<p class="panel">${t('rebuild.inProgress', { name: esc(loc(MODULES[state.building.id].name, lang)), n: state.building.daysLeft })}</p>` : ''}
+        <div class="grid grid-cards">${offer()}</div>
+        <div class="row" style="margin-top:16px">
+          <button id="act-done" class="btn primary big" type="button">${t('scav.toMap')}</button>
+        </div>`;
+      root.querySelector('#act-done').addEventListener('click', () => {
+        ctx.go('map');
+        ctx.toast(t('scav.done'));
+      });
+      root.querySelectorAll('[data-build]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.build;
+          const result = startBuilding(state, id, { anywhere: true });
+          if (!result.ok) {
+            ctx.toast(t(`rebuild.reason.${result.reason}`));
+            return;
+          }
+          ctx.save();
+          ctx.toast(t('rebuild.started', { name: loc(MODULES[id].name, lang) }));
+          draw();
+        });
+      });
+    };
+    draw();
   }
 
   showCrew();

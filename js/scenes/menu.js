@@ -1,10 +1,11 @@
 import { hasSave } from '../core/state.js';
 import { t } from '../i18n/index.js';
-import { getQuality, setQuality } from '../render/settings.js';
+import { getQuality, setQuality, getSensitivityKey, setSensitivity, SENSITIVITY } from '../render/settings.js';
 
 export function render(root, ctx) {
   const saved = hasSave();
   const quality = getQuality();
+  const sensitivity = getSensitivityKey();
   root.innerHTML = `
     <section class="panel hero" aria-labelledby="hero-title">
       <h2 id="hero-title">${t('app.title')}</h2>
@@ -22,11 +23,17 @@ export function render(root, ctx) {
             <option value="low" ${quality === 'low' ? 'selected' : ''}>${t('menu.quality.low')}</option>
           </select>
         </label>
+        <label class="small-text">${t('menu.sensitivity')}
+          <select id="sensitivity">
+            ${Object.keys(SENSITIVITY).map(k => `<option value="${k}" ${k === sensitivity ? 'selected' : ''}>${t(`menu.sensitivity.${k}`)}</option>`).join('')}
+          </select>
+        </label>
       </div>
     </section>
   `;
 
   root.querySelector('#quality').addEventListener('change', e => setQuality(e.target.value));
+  root.querySelector('#sensitivity').addEventListener('change', e => setSensitivity(e.target.value));
 
   root.querySelector('[data-act="new"]').addEventListener('click', () => ctx.startNewGame());
   root.querySelector('[data-act="continue"]')?.addEventListener('click', () => ctx.continueGame());

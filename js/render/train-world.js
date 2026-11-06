@@ -3,7 +3,7 @@
 import { createPassenger, createMaterials } from './characters.js';
 import { isAlive } from '../core/passengers.js';
 
-export const WAGONS = 5;
+export const WAGONS = 6;          // six carriages of twenty seats: room for 120 people
 export const WAGON_LENGTH = 12;   // metres from one carriage centre to the next
 // Where the player may walk: the aisle, and the length of the train.
 export const TRAIN_BOUNDS = {

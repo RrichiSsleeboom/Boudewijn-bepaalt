@@ -3,26 +3,32 @@ import { COUNTRIES, JOBS, TRAITS } from '../data/names.js';
 const WORK_JOBS = JOBS.filter(j => !j.child);
 const CHILD_JOB = JOBS.find(j => j.child);
 
+// The train can carry this many people, one per seat (six carriages of twenty seats).
+export const TRAIN_CAPACITY = 120;
+
+// One passenger, with the given index (0-based) in the list. The rng decides everything.
+export function makePassenger(rng, index) {
+  const country = rng.pick(COUNTRIES);
+  const isChild = rng.chance(0.15);
+  const job = isChild ? CHILD_JOB : rng.pick(WORK_JOBS);
+  return {
+    id: `p${String(index + 1).padStart(3, '0')}`,
+    name: `${rng.pick(country.first)} ${rng.pick(country.last)}`,
+    country: country.code,
+    age: isChild ? rng.int(3, 13) : rng.int(18, 75),
+    job: job.id,
+    skill: job.skill,
+    health: rng.int(70, 100),
+    morale: rng.int(45, 80),
+    trait: rng.pick(TRAITS),
+    status: 'alive', // alive | sacrificed | left | dead
+  };
+}
+
 // Creates the passengers for a new game. The same rng state always gives the same train.
 export function generatePassengers(rng, count = 100) {
   const passengers = [];
-  for (let i = 0; i < count; i++) {
-    const country = rng.pick(COUNTRIES);
-    const isChild = rng.chance(0.15);
-    const job = isChild ? CHILD_JOB : rng.pick(WORK_JOBS);
-    passengers.push({
-      id: `p${String(i + 1).padStart(3, '0')}`,
-      name: `${rng.pick(country.first)} ${rng.pick(country.last)}`,
-      country: country.code,
-      age: isChild ? rng.int(3, 13) : rng.int(18, 75),
-      job: job.id,
-      skill: job.skill,
-      health: rng.int(70, 100),
-      morale: rng.int(45, 80),
-      trait: rng.pick(TRAITS),
-      status: 'alive', // alive | sacrificed | left | dead
-    });
-  }
+  for (let i = 0; i < count; i++) passengers.push(makePassenger(rng, i));
   return passengers;
 }
 
