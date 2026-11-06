@@ -40,6 +40,14 @@ export function runTrainWalk({ container, passengers, lang = 'nl', quality = 'hi
   prompt.setAttribute('aria-live', 'polite');
   container.appendChild(prompt);
 
+  // A hint that stays until the mouse is locked, so the player knows how to look around.
+  const hint = document.createElement('div');
+  hint.className = 'walk-hint';
+  hint.textContent = touch ? '' : t('walk.hint');
+  container.appendChild(hint);
+  const unlockHint = () => { hint.hidden = document.pointerLockElement === engine.renderer.domElement; };
+  document.addEventListener('pointerlockchange', unlockHint);
+
   const exit = document.createElement('button');
   exit.type = 'button';
   exit.className = 'btn small walk-exit';
@@ -123,6 +131,8 @@ export function runTrainWalk({ container, passengers, lang = 'nl', quality = 'hi
       controls.dispose();
       hud.dispose();
       talkBtn?.remove();
+      document.removeEventListener('pointerlockchange', unlockHint);
+      hint.remove();
       prompt.remove();
       exit.remove();
       container.classList.remove('walk-mode');

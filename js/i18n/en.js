@@ -172,6 +172,7 @@ export default {
   'train.walk': 'Walk through the train',
   'walk.exit': 'Back to the list',
   'walk.talk': 'Use',
+  'walk.hint': 'Click to look around. WASD or ZQSD to walk, Shift to run, E to use.',
   'walk.prompt': '{name} · {job} · {country}',
   'walk.unavailable': 'The 3D view is not available here.',
 

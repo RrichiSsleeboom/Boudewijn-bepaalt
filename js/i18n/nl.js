@@ -172,6 +172,7 @@ export default {
   'train.walk': 'Loop door de trein',
   'walk.exit': 'Terug naar de lijst',
   'walk.talk': 'Gebruik',
+  'walk.hint': 'Klik om rond te kijken. WASD of ZQSD lopen, Shift rennen, E gebruiken.',
   'walk.prompt': '{name} · {job} · {country}',
   'walk.unavailable': '3D is hier niet beschikbaar.',
 

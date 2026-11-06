@@ -1,13 +1,21 @@
-// First-person controls: keyboard (WASD or arrows), mouse with pointer lock,
-// and on touch screens a joystick on the left and a look-drag on the right.
+// First-person controls: keyboard (WASD, ZQSD for AZERTY, or arrows), mouse with
+// pointer lock, and on touch screens a joystick on the left and a look-drag on the right.
 // The player is a point on the floor with a radius, moving against simple box colliders.
 
-const MOVE_KEYS = {
-  KeyW: 'forward', ArrowUp: 'forward',
-  KeyS: 'back', ArrowDown: 'back',
-  KeyA: 'left', ArrowLeft: 'left',
-  KeyD: 'right', ArrowRight: 'right',
+// Arrows are matched by physical key, letters by the character they type,
+// so both QWERTY (WASD) and AZERTY (ZQSD) keyboards walk.
+const ARROW_KEYS = {
+  ArrowUp: 'forward', ArrowDown: 'back', ArrowLeft: 'left', ArrowRight: 'right',
 };
+const LETTER_KEYS = {
+  w: 'forward', z: 'forward',
+  s: 'back',
+  a: 'left', q: 'left',
+  d: 'right',
+};
+function moveFor(e) {
+  return ARROW_KEYS[e.code] ?? LETTER_KEYS[(e.key ?? '').toLowerCase()] ?? null;
+}
 const MAX_PITCH = 1.45;
 const LOOK_SPEED = 0.0022;   // radians per pixel of mouse movement
 const WALK_SPEED = 3.2;      // metres per second
@@ -35,8 +43,9 @@ export function createFirstPerson({ engine, element, touchUi = null, actions = {
   // ----- keyboard -----
   on(window, 'keydown', e => {
     if (!enabled) return;
-    if (MOVE_KEYS[e.code]) {
-      keys.add(MOVE_KEYS[e.code]);
+    const move = moveFor(e);
+    if (move) {
+      keys.add(move);
       e.preventDefault();
     }
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') keys.add('run');
@@ -45,7 +54,8 @@ export function createFirstPerson({ engine, element, touchUi = null, actions = {
     if (e.code === 'KeyE' && !e.repeat) actions.interact?.();
   });
   on(window, 'keyup', e => {
-    if (MOVE_KEYS[e.code]) keys.delete(MOVE_KEYS[e.code]);
+    const move = moveFor(e);
+    if (move) keys.delete(move);
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') keys.delete('run');
   });
   // Releasing keys when the window loses focus avoids a stuck "walking" player.

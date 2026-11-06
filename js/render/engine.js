@@ -15,6 +15,16 @@ export function isWebGLAvailable() {
   }
 }
 
+// A message in the middle of the 3D view, with the technical reason in the console.
+function showError(container, err) {
+  if (container.querySelector('.scene-error')) return;
+  const box = document.createElement('div');
+  box.className = 'scene-error';
+  box.setAttribute('role', 'alert');
+  box.textContent = `3D kon niet worden getekend (${err?.message ?? err}). Probeer de pagina opnieuw te laden of kies een lage beeldkwaliteit in het menu.`;
+  container.appendChild(box);
+}
+
 // Creates a renderer in container with a scene, a camera and a render loop.
 // Updaters run every frame with dt in seconds (capped at 50 ms, so a stalled tab does not jump).
 export function createEngine(container, { fov = 70, quality = 'high' } = {}) {
@@ -53,8 +63,16 @@ export function createEngine(container, { fov = 70, quality = 'high' } = {}) {
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    for (const fn of updaters) fn(dt);
-    renderer.render(scene, camera);
+    try {
+      for (const fn of updaters) fn(dt);
+      renderer.render(scene, camera);
+    } catch (err) {
+      // An error stops the loop. Show it, instead of leaving a black screen.
+      running = false;
+      console.error('3D-weergave gestopt:', err);
+      showError(container, err);
+      return;
+    }
     if (running) raf = requestAnimationFrame(frame);
   }
 

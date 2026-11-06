@@ -537,6 +537,37 @@ select, input[type="text"] {
 
 .walk-prompt:empty { display: none; }
 
+.walk-hint {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  max-width: calc(100% - 24px);
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  color: #f1e9da;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.walk-hint[hidden] { display: none; }
+
+.scene-error {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 32px);
+  max-width: 420px;
+  padding: 12px 14px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
 .travel-label {
   position: absolute;
   left: 12px;
