@@ -169,6 +169,12 @@ export default {
   'scav.fallbackText': 'No 3D view is available here. The crew searches automatically instead and brings back half of what this station holds.',
   'scav.fallbackGo': 'Send the crew out',
 
+  'train.walk': 'Walk through the train',
+  'walk.exit': 'Back to the list',
+  'walk.talk': 'Use',
+  'walk.prompt': '{name} · {job} · {country}',
+  'walk.unavailable': 'The 3D view is not available here.',
+
   'map.rebuild': 'Rebuild in {name}',
   'rebuild.title': 'Rebuild in {station}',
   'rebuild.notSettlement': 'Nobody lives here. You can only build in a settlement.',

@@ -24,6 +24,8 @@ export function render(root, ctx) {
     return null;
   }
   let modal = null;
+  let walk = null;          // the 3D walk through the train, when open
+  let walkOverlay = null;   // the full-screen element it lives in
 
   // ---------- Modals ----------
 
@@ -122,6 +124,7 @@ export function render(root, ctx) {
       onClose: () => {
         modal = null;
         back();
+        syncWalk();
       },
       body: methodStep(),
     });
@@ -202,6 +205,88 @@ export function render(root, ctx) {
     return t('sac.weight.medium');
   }
 
+  // ---------- 3D walk through the train ----------
+
+  // The walk stops moving while a dialog is open.
+  function syncWalk() {
+    walk?.setPaused(modal !== null);
+  }
+
+  // Loads the 3D code only when the player asks for it. If that fails, the 2D list stays.
+  async function openWalk() {
+    if (walkOverlay) return;
+    walkOverlay = document.createElement('div');
+    walkOverlay.className = 'walk-overlay';
+    document.body.appendChild(walkOverlay);
+    try {
+      const engine = await import('../render/engine.js');
+      if (!engine.isWebGLAvailable()) throw new Error('no-webgl');
+      const { runTrainWalk } = await import('../render/train-walk.js');
+      if (!walkOverlay) return; // closed while loading
+      walk = runTrainWalk({
+        container: walkOverlay,
+        passengers: state.passengers,
+        lang: state.lang,
+        onInteract: id => openPassengerCard(id),
+        onExit: () => closeWalk(),
+      });
+      syncWalk();
+    } catch {
+      disposeWalk();
+      ctx.toast(t('walk.unavailable'));
+    }
+  }
+
+  function disposeWalk() {
+    walk?.dispose();
+    walk = null;
+    walkOverlay?.remove();
+    walkOverlay = null;
+  }
+
+  function closeWalk() {
+    disposeWalk();
+    draw();
+  }
+
+  // The card of one passenger, opened by talking to them in 3D.
+  function openPassengerCard(id) {
+    const person = state.passengers.find(p => p.id === id);
+    if (!person || !isAlive(person)) return;
+    const country = COUNTRY[person.country];
+    const job = JOB[person.job];
+    modal = openModal({
+      title: esc(person.name),
+      labelledBy: 'card-title',
+      onClose: () => {
+        modal = null;
+        syncWalk();
+      },
+      body: `
+        <article class="card">
+          <div class="meta">${esc(loc(country.name, state.lang))} · ${esc(loc(job.name, state.lang))} · ${t('train.age', { age: person.age })}</div>
+          <div>
+            <span class="tag">${esc(t(`skill.${person.skill}`))}</span>
+            <span class="tag">${esc(t(`trait.${person.trait}`))}</span>
+          </div>
+          <div class="small-text muted">${t('train.health')}</div>
+          ${bar(person.health)}
+          <div class="small-text muted">${t('train.morale')}</div>
+          ${bar(person.morale, 'morale')}
+        </article>
+        <div class="stack" style="margin-top:12px">
+          <button class="btn danger" type="button" data-act="sacrifice">${t('train.sacrifice')}</button>
+          <button class="btn" type="button" data-act="close">${t('common.close')}</button>
+        </div>`,
+    });
+    modal.body.querySelector('[data-act="close"]').addEventListener('click', () => modal.close());
+    modal.body.querySelector('[data-act="sacrifice"]').addEventListener('click', () => {
+      modal.close(true);
+      modal = null;
+      openSacrifice();
+    });
+  }
+
   // ---------- Page ----------
 
   function afterChange(focusId, message) {
@@ -222,10 +307,13 @@ export function render(root, ctx) {
       if (state.pending.type === 'event') openEvent();
       else openCrisis();
     }
+    walk?.refresh(); // gone passengers disappear from the 3D train
+    syncWalk();
   }
 
   function bindPage() {
     root.querySelector('#act-map').addEventListener('click', () => ctx.go('map'));
+    root.querySelector('#act-walk').addEventListener('click', () => openWalk());
     root.querySelector('#act-next')?.addEventListener('click', () => {
       const messages = advanceDay(state);
       const first = messages.length ? loc(messages[0]) : '';
@@ -257,6 +345,7 @@ export function render(root, ctx) {
   return () => {
     modal?.close(true);
     modal = null;
+    disposeWalk();
   };
 }
 
@@ -286,6 +375,7 @@ function view(state) {
           <button id="act-ration" class="btn" type="button">${state.rationing ? t('train.rationOff') : t('train.rationOn')}</button>
           <button id="act-sacrifice" class="btn danger" type="button">${t('train.sacrifice')}</button>
           <button id="act-map" class="btn" type="button">${t('train.toMap')}</button>
+          <button id="act-walk" class="btn" type="button">${t('train.walk')}</button>
         </div>
         ${state.rationing ? `<p class="small-text muted" style="margin-top:10px">${t('train.rationingNote')}</p>` : ''}
         ${state.pending ? `<p class="small-text" style="margin-top:10px;color:var(--danger)">${t(state.pending.type === 'event' ? 'train.eventPending' : 'train.crisisPending')}</p>` : ''}

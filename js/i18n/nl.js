@@ -169,6 +169,12 @@ export default {
   'scav.fallbackText': 'Hier is geen 3D-weergave beschikbaar. De ploeg zoekt daarom automatisch: ze brengen de helft van wat er in dit station ligt terug.',
   'scav.fallbackGo': 'Laat de ploeg zoeken',
 
+  'train.walk': 'Loop door de trein',
+  'walk.exit': 'Terug naar de lijst',
+  'walk.talk': 'Gebruik',
+  'walk.prompt': '{name} · {job} · {country}',
+  'walk.unavailable': '3D is hier niet beschikbaar.',
+
   'map.rebuild': 'Herbouw in {name}',
   'rebuild.title': 'Herbouw in {station}',
   'rebuild.notSettlement': 'Hier woont niemand. Je kunt alleen bouwen in een nederzetting.',
