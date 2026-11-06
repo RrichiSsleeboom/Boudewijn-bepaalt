@@ -161,6 +161,13 @@ export default {
   'scav.reason.looted': 'Hier is al gezocht.',
   'scav.reason.crew': 'Er zijn niet genoeg mensen om op pad te sturen.',
   'scav.cannot': 'Je kunt hier nu niet zoeken.',
+  'scav.hint3d': 'Klik in beeld om rond te kijken. WASD lopen, Shift rennen, spatie slaan, F schieten.',
+  'scav.msg.hit': 'Raak!',
+  'scav.msg.noAmmo': 'Geen munitie meer.',
+  'scav.msg.grabbed': 'Een zombie grijpt je!',
+  'scav.msg.crate': '{n} {type} gevonden.',
+  'scav.fallbackText': 'Hier is geen 3D-weergave beschikbaar. De ploeg zoekt daarom automatisch: ze brengen de helft van wat er in dit station ligt terug.',
+  'scav.fallbackGo': 'Laat de ploeg zoeken',
 
   'map.rebuild': 'Herbouw in {name}',
   'rebuild.title': 'Herbouw in {station}',

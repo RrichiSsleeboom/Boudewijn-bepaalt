@@ -15,7 +15,7 @@ const RUN_FACTOR = 1.7;
 const PLAYER_RADIUS = 0.3;
 const EYE_HEIGHT = 1.65;
 
-export function createFirstPerson({ engine, element, touchUi = null, actions = {} }) {
+export function createFirstPerson({ engine, element, touchUi = null, actions = {}, bounds = null }) {
   const { THREE, camera } = engine;
   const position = new THREE.Vector3(0, 0, 0);
   const keys = new Set();
@@ -75,9 +75,7 @@ export function createFirstPerson({ engine, element, touchUi = null, actions = {
     on(joystick, 'pointermove', e => { if (joy.active && e.pointerId === joy.id) updateJoy(e); });
     const endJoy = e => {
       if (e.pointerId !== joy.id) return;
-      joy.active = false;
-      joy.x = 0;
-      joy.y = 0;
+      resetJoy();
     };
     on(joystick, 'pointerup', endJoy);
     on(joystick, 'pointercancel', endJoy);
@@ -111,6 +109,16 @@ export function createFirstPerson({ engine, element, touchUi = null, actions = {
     if (len > 1) { dx /= len; dy /= len; }
     joy.x = dx;
     joy.y = dy;
+    const knob = touchUi.joystick.querySelector('.knob');
+    if (knob) knob.style.transform = `translate(${dx * radius * 0.6}px, ${dy * radius * 0.6}px)`;
+  }
+
+  function resetJoy() {
+    joy.active = false;
+    joy.x = 0;
+    joy.y = 0;
+    const knob = touchUi?.joystick.querySelector('.knob');
+    if (knob) knob.style.transform = '';
   }
 
   function applyLook(dx, dy) {
@@ -155,6 +163,10 @@ export function createFirstPerson({ engine, element, touchUi = null, actions = {
       const dirZ = (-c * fwd - s * side) / len;
       slide(dirX * speed * dt, dirZ * speed * dt);
     }
+    if (bounds) {
+      position.x = Math.max(bounds.minX + PLAYER_RADIUS, Math.min(bounds.maxX - PLAYER_RADIUS, position.x));
+      position.z = Math.max(bounds.minZ + PLAYER_RADIUS, Math.min(bounds.maxZ - PLAYER_RADIUS, position.z));
+    }
     camera.position.set(position.x, position.y + EYE_HEIGHT, position.z);
     camera.rotation.set(look.pitch, look.yaw, 0, 'YXZ');
   };
@@ -173,6 +185,8 @@ export function createFirstPerson({ engine, element, touchUi = null, actions = {
       look.pitch = pitch;
     },
     isLocked: () => locked,
+    // The horizontal direction the player looks in, as a unit vector on the floor.
+    forward: () => ({ x: -Math.sin(look.yaw), z: -Math.cos(look.yaw) }),
     setEnabled(value) {
       enabled = value;
       if (!value) keys.clear();

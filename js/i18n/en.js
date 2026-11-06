@@ -161,6 +161,13 @@ export default {
   'scav.reason.looted': 'You have already searched here.',
   'scav.reason.crew': 'There are not enough people to send out.',
   'scav.cannot': 'You cannot scavenge here right now.',
+  'scav.hint3d': 'Click in the view to look around. WASD to walk, Shift to run, space to strike, F to shoot.',
+  'scav.msg.hit': 'Hit!',
+  'scav.msg.noAmmo': 'Out of ammo.',
+  'scav.msg.grabbed': 'A zombie grabs you!',
+  'scav.msg.crate': 'Found {n} {type}.',
+  'scav.fallbackText': 'No 3D view is available here. The crew searches automatically instead and brings back half of what this station holds.',
+  'scav.fallbackGo': 'Send the crew out',
 
   'map.rebuild': 'Rebuild in {name}',
   'rebuild.title': 'Rebuild in {station}',
